@@ -115,11 +115,11 @@ for column in input_columns:
 
 #%% split to train
 test_size = 0.4
-#%%
+# %
 inputMatrixClean = inputMatrix.dropna(axis=1)
 inputMatrixClean.fillna(0,inplace=True)
 targetMatrix = targetMatrix.T[inputMatrixClean.index].T
-#%%
+#%
 x_train, x_test = train_test_split(inputMatrixClean.fillna(0), test_size=test_size)
 y_train, y_test = train_test_split(targetMatrix.fillna(0), test_size=test_size)
 
@@ -207,9 +207,9 @@ print('train hamming_score =%.3f   test hamming_score =%.3f'%(train_accuracy,tes
 #%% NN basic classiffier skflow
 # TensorFlow and tf.keras
 import tensorflow as tf
+from tensorflow.estimator import DNNClassifier
 
-
-model = tf.estimator.DNNClassifier(
+model = DNNClassifier(
     feature_columns=list(x_train.columns),
     # Two hidden layers of 10 nodes each.
     hidden_units=[int(len(x_train.columns)/2), int(len(x_train.columns)/2)],
