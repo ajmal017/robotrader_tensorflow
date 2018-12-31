@@ -34,8 +34,8 @@ inputMatrixClean.fillna(0,inplace=True)
 targetMatrix = targetMatrix.T[inputMatrixClean.index].T
 
 #%% split to train
-x_train, x_test = train_test_split(inputMatrixClean.fillna(0), test_size=test_size)
-y_train, y_test = train_test_split(targetMatrix.fillna(0), test_size=test_size)
+x_train, x_test = train_test_split(inputMatrixClean.fillna(0), test_size=test_size, shuffle=False)
+y_train, y_test = train_test_split(targetMatrix.fillna(0), test_size=test_size, shuffle=False)
 
 print('input have %d features' % (len(inputMatrixClean.columns)))
 print('train  have %d samples \ntest %d samples' % (len(x_train), len(x_test)))
@@ -101,12 +101,32 @@ print('train hamming_score =%.3f   test hamming_score =%.3f' % (train_accuracy,t
 # %% probabilistic = weight => backtest
 output_train = pipelineObject.predict_proba(x_train)
 output_test = pipelineObject.predict_proba(x_test)
-#get backtest
+# %% get backtest
+returns_train = returnsAll.T[x_train.index].T[symbols]
+returns_test = returnsAll.T[x_test.index].T[symbols]
+backtest_train_returns = returns_train * output_train
+backtest_test_returns = returns_test * output_test
+# %% plot it
 
+backtest_total = backtest_train_returns.append(backtest_test_returns).dropna()
+test_date = returns_test.index[0]
+plt.close()
+pnl_total = backtest_total.sum(axis=1).cumsum()
+pnl_total.plot()
+pnl_total[test_date:].plot()
+plt.legend(['train_sample', 'test_sample'])
+plt.show()
 
+# %% benchmark it with buy and hold
+plt.close()
+pnl_total.plot()
+pnl_total[test_date:].plot()
 
-
-
+benchmark_total = returnsAll / returnsAll.shape[1]
+pnl_benchmark = benchmark_total.sum(axis=1).cumsum()
+pnl_benchmark.plot()
+plt.legend(['train_sample', 'test_sample', 'buy & hold'])
+plt.show()
 #%% NN basic classiffier skflow
 # TensorFlow and tf.keras
 

@@ -137,8 +137,10 @@ def hamming_score(y_true, y_pred, normalize=True, sample_weight=None):
     return np.mean(acc_list)
 
 
-def get_backtest_returns(dataDict, symbols, prediction, days_predict):
-    returns = get_returns(dataDict, days_predict, plot=False)
-    # position
-
-    pass
+def get_backtest_returns(returns_df, prediction_proba, plot=True):
+    output = returns_df * prediction_proba
+    if plot:
+        plt.close()
+        pnl_train = output.sum(axis=1).cumsum()
+        pnl_train.plot()
+    return output
