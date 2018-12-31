@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import LabelBinarizer
+from sklearn.preprocessing import LabelBinarizer, MinMaxScaler
 from util_functions import *
 
 days_predict = 1
@@ -39,6 +39,8 @@ y_train, y_test = train_test_split(targetMatrix.fillna(0), test_size=test_size, 
 
 print('input have %d features' % (len(inputMatrixClean.columns)))
 print('train  have %d samples \ntest %d samples' % (len(x_train), len(x_test)))
+
+'''
 #%% SVC simple => predict class
 
 from sklearn import preprocessing
@@ -156,7 +158,7 @@ pnl_benchmark.plot()
 plt.legend(['train_sample', 'test_sample', 'buy & hold'])
 plt.show()
 
-
+'''
 #%% NN basic classiffier skflow
 # TensorFlow and tf.keras
 
@@ -164,29 +166,55 @@ plt.show()
 binarizer = LabelBinarizer()
 y_train_binarized = binarizer.fit_transform(y_train.values)
 y_test_binarized = binarizer.fit_transform(y_test.values)
+normalizer = MinMaxScaler()
+x_train_normalized = normalizer.fit_transform(x_train)
+x_test_normalized = normalizer.fit_transform(x_test)
 # %%
 from tensorflow import keras
 
+features = x_train.shape[1]
+classes = len(symbols)
+
+
 model = keras.Sequential([
     keras.layers.Dense(x_train.shape[1]),
-    keras.layers.Dense(int(x_train.shape[1] * 2), activation=tf.nn.relu),
+    keras.layers.Dense(int(x_train.shape[1] * 2), activation=tf.nn.sigmoid),
+    keras.layers.Dense(int(x_train.shape[1] * 2), activation=tf.nn.sigmoid),
     keras.layers.Dense(3, activation=tf.nn.sigmoid)
 ])
 
 #%%
 model.compile(optimizer=tf.train.AdamOptimizer(),
-              loss='binary_crossentropy',
+              loss='categorical_crossentropy',
               metrics=['accuracy'])
 
 # %%
-model.fit(x_train.values, y_train_binarized, epochs=100)
+model.fit(x_train_normalized, y_train_binarized, epochs=100)
 
 # %%
-predictions_train = model.predict(x_train.values)
-predictions_test = model.predict(x_test.values)
-#%%
+predictions_train = pd.DataFrame(model.predict(x_train.values), index=x_train.index, columns=symbols)
 
-train_accuracy= hamming_score(y_train, pipelineObject.predict(x_train))
-test_accuracy= hamming_score(y_test, pipelineObject.predict(x_test))
+predictions_test = pd.DataFrame(model.predict(x_test.values), index=x_test.index, columns=symbols)
+predictions_train_normalized = (predictions_train).div(predictions_train.sum(axis=1), axis=0)
+predictions_test_normalized = (predictions_test).div(predictions_test.sum(axis=1), axis=0)
 
-print('train hamming_score =%.3f   test hamming_score =%.3f'%(train_accuracy,test_accuracy))
+# %%
+# %% get backtest
+returns_train = returnsAll.T[x_train.index].T[symbols]
+returns_test = returnsAll.T[x_test.index].T[symbols]
+backtest_train_returns = returns_train * predictions_train_normalized
+backtest_test_returns = returns_test * predictions_test_normalized
+# %% plot it
+
+backtest_total = backtest_train_returns.append(backtest_test_returns).dropna()
+test_date = returns_test.index[0]
+plt.close()
+pnl_total = backtest_total.sum(axis=1).cumsum()
+pnl_total.plot()
+pnl_total[test_date:].plot()
+
+benchmark_total = returnsAll / returnsAll.shape[1]
+pnl_benchmark = benchmark_total.sum(axis=1).cumsum()
+pnl_benchmark.plot()
+plt.legend(['train_sample', 'test_sample', 'buy & hold'])
+plt.show()
