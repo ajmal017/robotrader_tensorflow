@@ -127,6 +127,36 @@ pnl_benchmark = benchmark_total.sum(axis=1).cumsum()
 pnl_benchmark.plot()
 plt.legend(['train_sample', 'test_sample', 'buy & hold'])
 plt.show()
+
+# %% add commission to backtest to see lose profitability
+# The average ETF carries an expense ratio of 0.44%
+commission_average_etf = 0.44 / 100
+basic_fee = 2
+capital = 1000000  # play with capital to get min balance
+
+# http://guides.wsj.com/personal-finance/investing/how-to-choose-an-exchange-traded-fund-etf/
+
+backtest_train_returns_commission = (backtest_train_returns) * capital - basic_fee - (
+    backtest_train_returns) * capital * commission_average_etf
+backtest_test_returns_commission = (backtest_test_returns) * capital - basic_fee - (
+    backtest_test_returns) * capital * commission_average_etf
+
+backtest_total_commission = backtest_train_returns_commission.append(backtest_test_returns_commission).dropna()
+plt.close()
+pnl_total_commission = backtest_total_commission.sum(axis=1).cumsum()
+pnl_total_commission.plot()
+pnl_total_commission[test_date:].plot()
+plt.close()
+pnl_total_commission.plot()
+pnl_total_commission[test_date:].plot()
+
+benchmark_total = (returnsAll / returnsAll.shape[1]) * capital
+pnl_benchmark = benchmark_total.sum(axis=1).cumsum()
+pnl_benchmark.plot()
+plt.legend(['train_sample', 'test_sample', 'buy & hold'])
+plt.show()
+
+
 #%% NN basic classiffier skflow
 # TensorFlow and tf.keras
 
@@ -139,12 +169,13 @@ from tensorflow import keras
 
 model = keras.Sequential([
     keras.layers.Dense(x_train.shape[1]),
-    keras.layers.Dense(x_train.shape[1] / 2, activation=tf.nn.relu),
-    keras.layers.Dense(3, activation=tf.nn.softmax)
+    keras.layers.Dense(int(x_train.shape[1] * 2), activation=tf.nn.relu),
+    keras.layers.Dense(3, activation=tf.nn.sigmoid)
 ])
 
+#%%
 model.compile(optimizer=tf.train.AdamOptimizer(),
-              loss='sparse_categorical_crossentropy',
+              loss='binary_crossentropy',
               metrics=['accuracy'])
 
 # %%
