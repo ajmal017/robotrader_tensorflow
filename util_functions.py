@@ -12,6 +12,12 @@ def excel_to_dataDict(filePath):
     return outputDict
 
 
+def calculateSharpe(returns_series):
+    num = returns_series.mean() * np.sqrt(252)
+    den = returns_series.std()
+    sharpe = num / den
+    return sharpe
+
 def import_data_from_fw(symbols, appended_instruments=None, save_file=False):
     import datetime
     from tradeasystems_connector.util.instrument_util import getInstrumentList
